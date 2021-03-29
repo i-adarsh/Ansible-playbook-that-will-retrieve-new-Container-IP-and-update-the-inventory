@@ -1,0 +1,41 @@
+ - name : Configuration of Docker Container Dynamically
+   hosts : localhost
+   vars_prompt:
+          - name : container_name
+            prompt : "Enter name of Container "
+            private : no
+          - name : port_no
+            prompt : "Enter Port No. you want to Export "
+            private : no
+   tasks : 
+          - name : Installing Docker SDK
+            block :
+                - command : pip3 show docker-py
+            rescue:
+                - pip :
+                    name : docker-py
+          
+          - name : start docker service
+            service:
+                 name : "docker"
+                 state : started
+                 enabled : yes
+
+          - name : Put SELinux in Permissive mode
+            ansible.posix.selinux:
+                    policy: targeted
+                    state : permissive
+
+          - name : Launching Docker_Container
+            command : docker run -dit --name {{ container_name }} -p {{ port_no }}:80 iadarshkr/centos-ssh
+            
+          - name : Retrieve IP of running Container
+            shell: docker inspect --format '{''{ .NetworkSettings.IPAddress }''}' {{ container_name }}
+            register : Container_ID
+
+          - name : Update Inventory File
+            blockinfile :
+                    path : /root/retrive_docker_ip/inventory
+                    block : |
+                         [docker]
+                         {{ Container_ID.stdout}} ansible_ssh_user=root ansible_ssh_pass=root ansible_connection=ssh
