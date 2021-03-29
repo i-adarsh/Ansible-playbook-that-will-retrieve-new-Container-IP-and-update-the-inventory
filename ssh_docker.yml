@@ -1,0 +1,16 @@
+---
+ - hosts : localhost
+   tasks : 
+      - name : Create a Directory if it does not exist
+        ansible.builtin.file :
+                path : /root/docker1/docker_ssh
+                state : directory
+      - name : create a sshd_config file          
+        copy :
+              dest : /root/docker1/docker_ssh/sshd_config
+              content : " port 22\n protocol 2\n\n HostKey /etc/ssh/ssh_host_rsa_key\n HostKey /etc/ssh/ssh_host_dsa_key\n HostKey /etc/ssh/ssh_host_ecdsa_key\n HostKey /etc/ssh/ssh_host_ed25519_key\n LoginGraceTime 120\n PermitRootLogin yes\n StrictModes yes\n\n PubkeyAuthentication yes\n UsePAM yes\n"
+      - copy :
+              dest : /root/docker1/docker_ssh/Dockerfile
+              content : " FROM centos:latest\n RUN yum -y update\n RUN yum install -y openssh-server\n RUN ssh-keygen -A\n ADD ./sshd_config /etc/ssh/sshd_config\n RUN echo root:root | chpasswd\n CMD /usr/sbin/sshd -D"
+      - name : Build tHe image
+        command : docker build -t centos_ssh14_2 /root/docker1/docker_ssh
